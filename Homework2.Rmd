@@ -1,0 +1,29 @@
+---
+title: "Homework2"
+author: "Muriel Pokol"
+date: "September 30, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+require(rgdal)
+require(leaflet)
+require(leaflet.extras)
+
+require(dplyr)
+require(readxl)
+require(stringr)
+```
+
+
+## Map with Points
+```{r, markers}
+city_temp <- read.csv("CitiesExt.csv")
+
+pal311 <- colorFactor(c("#d73027", "#1a9850"), c("no", "yes"))
+
+leaflet() %>%
+  addProviderTiles("OpenStreetMap.HOT") %>%
+  addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal311(EU)) %>%
+  addLegend(position = "topright" , pal = pal311, values = city_temp$EU, title = "EU?")
+```
