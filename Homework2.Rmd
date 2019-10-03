@@ -18,21 +18,35 @@ require(stringr)
 
 ## Map with Points
 ```{r, markers}
-city_temp <- read.csv("CitiesExt.csv")
 
 pal311 <- colorFactor(c("#d73027", "#1a9850"), c("no", "yes"))
 
+pal <- colorNumeric(
+  palette = "Purples",
+  domain = city_temp$temperature)
+
 leaflet() %>%
   addProviderTiles("OpenStreetMap.HOT") %>%
-  addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal311(EU)) %>%
-  addLegend(position = "topright" , pal = pal311, values = city_temp$EU, title = "EU?")
+  addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal(temperature)) %>%
+  addLegend(position = "topright" , pal = pal, values = city_temp$temperature, title = "temperature?")
+
+
 ```
+
 
 
 ```{r, loading}
-railway_data <- readOGR("./railways.shp", GDAL1_integer64_policy = TRUE)
+railway_data <- readOGR("./GBR_rails.shp", GDAL1_integer64_policy = TRUE)
 
 leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
-  addPolylines(color = "#63CBD3")
+  addPolylines(color = "purple")
 ```
+
+```{r, loading}
+railway_data <- readOGR("./GBR_adm2.shp", GDAL1_integer64_policy = TRUE)
+
+leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
+  addPolygons(color = "blue")
+```
+
 
