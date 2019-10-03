@@ -27,3 +27,12 @@ leaflet() %>%
   addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal311(EU)) %>%
   addLegend(position = "topright" , pal = pal311, values = city_temp$EU, title = "EU?")
 ```
+
+
+```{r, loading}
+railway_data <- readOGR("./railways.shp", GDAL1_integer64_policy = TRUE)
+
+leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
+  addPolylines(color = "#63CBD3")
+```
+
