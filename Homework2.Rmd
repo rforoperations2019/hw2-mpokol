@@ -9,7 +9,6 @@ output: html_document
 require(rgdal)
 require(leaflet)
 require(leaflet.extras)
-
 require(dplyr)
 require(readxl)
 require(stringr)
@@ -18,8 +17,9 @@ require(stringr)
 
 ## Map with Points
 ```{r, markers}
+city_temp <- read.csv("CitiesExt.csv")
 
-pal311 <- colorFactor(c("#d73027", "#1a9850"), c("no", "yes"))
+
 
 pal <- colorNumeric(
   palette = "Purples",
@@ -30,7 +30,6 @@ leaflet() %>%
   addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal(temperature)) %>%
   addLegend(position = "topright" , pal = pal, values = city_temp$temperature, title = "temperature?")
 
-
 ```
 
 
@@ -38,14 +37,22 @@ leaflet() %>%
 ```{r, loading}
 railway_data <- readOGR("./GBR_rails.shp", GDAL1_integer64_policy = TRUE)
 
-leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
-  addPolylines(color = "purple")
+leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE), group="WorldTerrain") %>%
+  addProviderTiles("OpenStreetMap.HOT", group = "StreetMap") %>%  
+  addPolylines(color = "#63CBD3") %>%
+
+
+  # Layers control
+  addLayersControl(
+    baseGroups = c("WorldTerrain", "StreetMap"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
 ```
 
-```{r, loading}
-railway_data <- readOGR("./GBR_adm2.shp", GDAL1_integer64_policy = TRUE)
+```{r, yeet}
+admin_data <- readOGR("./GBR_adm2.shp", GDAL1_integer64_policy = TRUE)
 
-leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
+leaflet(data = admin_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
   addPolygons(color = "blue")
 ```
 
