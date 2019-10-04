@@ -1,9 +1,19 @@
 ---
-title: "Homework2"
+title: "Homework 2: Building Maps with Leaflet" 
 author: "Muriel Pokol"
-date: "September 30, 2019"
-output: html_document
+date: "Due: 10/04/2019"
+output: 
+  html_document:
+    theme: lumen
 ---
+
+***
+
+<style>
+.html-widget {
+    margin: auto;
+}
+</style>
 
 ```{r setup, include=FALSE}
 require(rgdal)
@@ -14,46 +24,99 @@ require(readxl)
 require(stringr)
 ```
 
-
-## Map with Points
-```{r, markers}
-city_temp <- read.csv("CitiesExt.csv")
-
-
-
-pal <- colorNumeric(
-  palette = "Purples",
-  domain = city_temp$temperature)
-
-leaflet() %>%
-  addProviderTiles("OpenStreetMap.HOT") %>%
-  addCircleMarkers(data = city_temp, lng = ~longitude, lat = ~latitude, radius = 1.5, color =  ~pal(temperature)) %>%
-  addLegend(position = "topright" , pal = pal, values = city_temp$temperature, title = "temperature?")
-
+#### Load in Data  
+ 
+```{r, data_load, results='hide'}
+city_temp        <- read.csv("CitiesExt.csv")                                # for points map
+railway_data     <- readOGR("./GBR_rails.shp", GDAL1_integer64_policy=TRUE)  # for lines map
+admin_data_excel <- read.csv("GBR_adm2.csv")                                 # for poly map
+admin.load       <- readOGR("./GBR_adm2.shp",  GDAL1_integer64_policy=TRUE)  # for poly map
 ```
 
+|Map         |Dataset                                                                             |
+|:-----------|:-----------------------------------------------------------------------------------|
+|Points Map  |<https://web.stanford.edu/class/cs102/datasets.htm>                                 |
+|Lines Map   |<https://www.diva-gis.org/gdata>, select *United Kingdom* and *Railroads*           |
+|Polygons Map|<https://www.diva-gis.org/gdata>, select *United Kingdom* and *Administrative areas*|
 
+<br>
 
-```{r, loading}
-railway_data <- readOGR("./GBR_rails.shp", GDAL1_integer64_policy = TRUE)
+## European Cities and Average Temperature
+Builds a map with a layer of points. The variable `temperature` changes the color of the circle denoting the city, as shown on the accompanying legend.
 
-leaflet(data = railway_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE), group="WorldTerrain") %>%
-  addProviderTiles("OpenStreetMap.HOT", group = "StreetMap") %>%  
-  addPolylines(color = "#63CBD3") %>%
+```{r, markers}
+# Determine the color palette for temperature
+pal <- colorNumeric(
+  palette = "RdBu",
+  domain = city_temp$temperature,
+  reverse = TRUE)
 
+leaflet() %>%
+  addProviderTiles("CartoDB.DarkMatter") %>% # DarkMatter chosen for readability
+  addCircleMarkers(data = city_temp, 
+                   lng = ~longitude, 
+                   lat = ~latitude, 
+                   radius = 3.25, weight = 2,
+                   color = ~pal(temperature), 
+                   # Add circle popups for the city and avg temp
+                   popup = ~paste0(city, ": ", round(temperature, 2), " celsius")) %>% 
+  addLegend(position = "topright", pal = pal, values = city_temp$temperature, title = "Temperature?")
+```
 
-  # Layers control
+<br>
+
+## Train Lines across the United Kingdom
+Builds a map with layer of lines.  This map also includes a functioning `layersControl()` to choose between two basemaps. [^1]
+ 
+[^1]: Railway data did not download with a csv attachment denoting *which* train lines they are or if the railways are named, and so there is no popup associated with this dataset. I spoke to Malvika about this in Office Hours. 
+
+```{r, lines}
+leaflet(data = railway_data) %>%
+  
+  # Determine base maps
+  addProviderTiles("Stamen.Toner",      group = "Toner Map") %>%
+  addProviderTiles("Esri.WorldTerrain", group = "World Terrain Map") %>%
+  addProviderTiles("OpenStreetMap.HOT", group = "Street Map") %>% 
+  
+  addPolylines(color = "tomato", highlightOptions = highlightOptions(color="White", 
+                                                                     bringToFront=TRUE)) %>%
+  
+  # Add in layers control
   addLayersControl(
-    baseGroups = c("WorldTerrain", "StreetMap"),
-    options = layersControlOptions(collapsed = FALSE)
+    baseGroups = c("Toner Map", "World Terrain Map", "Street Map"),
+    options = layersControlOptions(collapsed=FALSE)
   )
 ```
 
-```{r, yeet}
-admin_data <- readOGR("./GBR_adm2.shp", GDAL1_integer64_policy = TRUE)
+<br>
 
-leaflet(data = admin_data) %>%  addProviderTiles("Esri.WorldTerrain", options = providerTileOptions(noWrap = TRUE)) %>%
-  addPolygons(color = "blue")
+## Administrative Counties in the United Kingdom 
+Builds a map with layer of polygons, again with a functioning `layersControl()` to choose between two basemaps. Counties are broken down with the polygon boundaries, and county name is shown as a popup.
+```{r, merge}
+# start csv ID count at 0 instead of 1 to match shp IDs
+admin_data_excel$OBJECTID = admin_data_excel$OBJECTID - 1
+
+# Merge data on thier respective IDs
+admin      <- admin.load[admin.load$ID_2 %in% admin_data_excel$OBJECTID,]
+admin@data <- merge(admin@data, admin_data_excel, sort=FALSE,
+                    by.x='ID_2', by.y='OBJECTID')
 ```
 
-
+```{r, polygons}
+leaflet(data = admin) %>% 
+  
+  # Determine base maps
+  addProviderTiles("Stamen.Toner",    group = "Toner Map") %>%
+  addProviderTiles("Esri.WorldTerrain", group = "World Terrain Map") %>%
+  addProviderTiles("OpenStreetMap.HOT", group = "Street Map") %>%
+  
+  addPolygons(color = "tomato", fillOpacity = 0.5, 
+              highlightOptions = highlightOptions(color="White", bringToFront=TRUE),
+              popup = ~paste0(admin$NAME_2.x, ", ", admin$TYPE_2.x)) %>%
+  
+  # Add in layers control
+  addLayersControl(
+    baseGroups = c("Toner Map", "World Terrain Map", "Street Map"),
+    options = layersControlOptions(collapsed=FALSE)
+  )
+```
